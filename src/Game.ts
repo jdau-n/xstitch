@@ -1,11 +1,17 @@
+import TabManager from "./ui/TabManager"
+import StatusManager from "./ui/StatusManager"
+
 export default class Game {
 
     intervalHandle: number;
 
+    statusManager: StatusManager;
+
     init() {
-        console.log("Init");
         this.intervalHandle = window.setInterval( this.tick, 1000 );
-        console.log(this.intervalHandle);
+
+        this.statusManager = new StatusManager();
+        this.statusManager.createDOM();
     }
 
     tick() {

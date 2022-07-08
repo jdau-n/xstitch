@@ -1,6 +1,16 @@
 @import '~sass-flex-grid';
-$body-color: green;
+
+@import 'palette.scss';
 
 body {
-  background-color: $body-color;
+  background-color: $background;
+  color: $text;
+
+  &.error {
+    background-color: $error-bg;
+  }
+}
+
+.status {
+
 }
