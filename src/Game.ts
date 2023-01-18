@@ -22,9 +22,10 @@ export default class Game {
 
     stitches: Array< Array<number> > = [];
     inStitch: boolean = false;
-    stitchTop: boolean = true; // will the next stitch be over the top of the fabric?
+    stitchTop: boolean = false; // will the next stitch be over the top of the fabric?
     currentStitchX: number;
     currentStitchY: number;
+    pathLength: number;
 
     init() {
         this.mainCanvas = <HTMLCanvasElement> document.getElementById('m-canvas');
@@ -94,20 +95,28 @@ export default class Game {
         // outside thread colour
         this.topSurfaceContext.beginPath();
         this.topSurfaceContext.lineCap = 'round';
-        this.topSurfaceContext.lineWidth = 6;
         this.topSurfaceContext.strokeStyle = 'rgb(55,50,62)';
+        if ( this.stitchTop ) {
+            this.topSurfaceContext.setLineDash([]);
+            this.topSurfaceContext.lineWidth = 6;
+        } else {
+            this.topSurfaceContext.setLineDash([12,6]);
+            this.topSurfaceContext.lineWidth = 2;
+        }
         this.topSurfaceContext.moveTo(sourceX, sourceY);
         this.topSurfaceContext.lineTo(mouseX, mouseY);
         this.topSurfaceContext.stroke();
 
         // inside thread colour
-        this.topSurfaceContext.beginPath();
-        this.topSurfaceContext.lineCap = 'round';
-        this.topSurfaceContext.lineWidth = 2;
-        this.topSurfaceContext.strokeStyle = 'rgb(109,106,117)';
-        this.topSurfaceContext.moveTo(sourceX, sourceY);
-        this.topSurfaceContext.lineTo(mouseX, mouseY);
-        this.topSurfaceContext.stroke();
+        if ( this.stitchTop ) {
+            this.topSurfaceContext.beginPath();
+            this.topSurfaceContext.lineCap = 'round';
+            this.topSurfaceContext.lineWidth = 2;
+            this.topSurfaceContext.strokeStyle = 'rgb(109,106,117)';
+            this.topSurfaceContext.moveTo(sourceX, sourceY);
+            this.topSurfaceContext.lineTo(mouseX, mouseY);
+            this.topSurfaceContext.stroke();
+        }
 
         this.renderSurfaces();
     }
@@ -117,8 +126,56 @@ export default class Game {
         if (y < 0 || y >= this.cellsY) { return; }
 
         if ( ! this.inStitch ) { this.inStitch = true; }
+        this.stitches.push( [x,y] );
         this.currentStitchX = x;
         this.currentStitchY = y;
+        this.stitchTop = (! this.stitchTop);
+
+        this.drawStitchPath();
+    }
+    
+    drawStitchPath() {
+        this.pathLength = 0;
+        // intentionally starting loop from 2nd element
+        for (let i = 1; i < this.stitches.length; i++) {
+            const previousStitch = this.stitches[i-1];
+            const currentStitch = this.stitches[i];
+
+            let a = previousStitch[0] - currentStitch[0];
+            let b = previousStitch[1] - currentStitch[1];
+            this.pathLength += Math.sqrt( a*a + b*b );
+
+            let [previousStitchX, previousStitchY] = this.pointToPixels( previousStitch[0], previousStitch[1] );
+            let [currentStitchX, currentStitchY] = this.pointToPixels( currentStitch[0], currentStitch[1] );
+
+            this.midSurfaceContext.beginPath();
+            this.midSurfaceContext.lineCap = 'round';
+            if ( i % 2 == 0 ) {
+                this.midSurfaceContext.strokeStyle = 'rgb(200,200,200)';
+                this.midSurfaceContext.setLineDash([5,10]);
+                this.midSurfaceContext.lineWidth = 3;
+            } else {
+                this.midSurfaceContext.lineWidth = 8;
+                this.midSurfaceContext.strokeStyle = 'rgb(150,150,200)';
+                this.midSurfaceContext.setLineDash([]);
+            }
+            this.midSurfaceContext.moveTo(previousStitchX, previousStitchY);
+            this.midSurfaceContext.lineTo(currentStitchX, currentStitchY);
+            this.midSurfaceContext.stroke();
+
+            if ( i % 2 != 0 ) {
+                this.midSurfaceContext.beginPath();
+                this.midSurfaceContext.lineCap = 'round';
+                this.midSurfaceContext.lineWidth = 4;
+                this.midSurfaceContext.strokeStyle = 'rgb(190,190,220)';
+                this.midSurfaceContext.setLineDash([]);
+                this.midSurfaceContext.moveTo(previousStitchX, previousStitchY);
+                this.midSurfaceContext.lineTo(currentStitchX, currentStitchY);
+                this.midSurfaceContext.stroke();
+            }
+        }
+
+        console.log(this.pathLength);
     }
 
     drawActivePoint(x:number, y:number) {
