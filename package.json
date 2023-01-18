@@ -23,6 +23,7 @@
     "webpack-dev-server": "^4.9.2"
   },
   "dependencies": {
+    "@types/offscreencanvas": "^2019.7.0",
     "scss-reset": "^1.2.2"
   }
 }

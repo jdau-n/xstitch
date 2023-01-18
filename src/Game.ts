@@ -2,6 +2,13 @@ export default class Game {
     mainCanvas: HTMLCanvasElement;
     mainCanvasContext: CanvasRenderingContext2D;
 
+    baseSurface: OffscreenCanvas;
+    baseSurfaceContext: OffscreenCanvasRenderingContext2D;
+    midSurface: OffscreenCanvas;
+    midSurfaceContext: OffscreenCanvasRenderingContext2D;
+    topSurface: OffscreenCanvas;
+    topSurfaceContext: OffscreenCanvasRenderingContext2D;
+
     canvasX: number = 500;
     canvasY: number = 500;
     cellSize: number = 25;
@@ -22,6 +29,13 @@ export default class Game {
     init() {
         this.mainCanvas = <HTMLCanvasElement> document.getElementById('m-canvas');
         this.mainCanvasContext = <CanvasRenderingContext2D> this.mainCanvas.getContext('2d');
+
+        this.baseSurface = new OffscreenCanvas( this.canvasX, this.canvasY );
+        this.baseSurfaceContext = <OffscreenCanvasRenderingContext2D> this.baseSurface.getContext('2d');
+        this.midSurface = new OffscreenCanvas( this.canvasX, this.canvasY );
+        this.midSurfaceContext = <OffscreenCanvasRenderingContext2D> this.midSurface.getContext('2d');
+        this.topSurface = new OffscreenCanvas( this.canvasX, this.canvasY );
+        this.topSurfaceContext = <OffscreenCanvasRenderingContext2D> this.topSurface.getContext('2d');
 
         let effectiveCanvasX: number = this.canvasX - this.cellSize;
         let effectiveCanvasY: number = this.canvasY - this.cellSize;
@@ -75,10 +89,27 @@ export default class Game {
     drawThread(mouseX:number, mouseY:number) {
         let [sourceX, sourceY] = this.pointToPixels( this.currentStitchX, this.currentStitchY );
 
-        this.mainCanvasContext.beginPath();
-        this.mainCanvasContext.moveTo(sourceX, sourceY);
-        this.mainCanvasContext.lineTo(mouseX, mouseY);
-        this.mainCanvasContext.stroke();
+        this.topSurfaceContext.clearRect( 0, 0, this.canvasX, this.canvasY );
+
+        // outside thread colour
+        this.topSurfaceContext.beginPath();
+        this.topSurfaceContext.lineCap = 'round';
+        this.topSurfaceContext.lineWidth = 6;
+        this.topSurfaceContext.strokeStyle = 'rgb(55,50,62)';
+        this.topSurfaceContext.moveTo(sourceX, sourceY);
+        this.topSurfaceContext.lineTo(mouseX, mouseY);
+        this.topSurfaceContext.stroke();
+
+        // inside thread colour
+        this.topSurfaceContext.beginPath();
+        this.topSurfaceContext.lineCap = 'round';
+        this.topSurfaceContext.lineWidth = 2;
+        this.topSurfaceContext.strokeStyle = 'rgb(109,106,117)';
+        this.topSurfaceContext.moveTo(sourceX, sourceY);
+        this.topSurfaceContext.lineTo(mouseX, mouseY);
+        this.topSurfaceContext.stroke();
+
+        this.renderSurfaces();
     }
 
     selectPoint(x:number, y:number) {
@@ -103,6 +134,7 @@ export default class Game {
         this.prevCellY = y;
 
         this.colourPoint( this.prevCellX, this.prevCellY, 0, 0, 255 );
+        this.renderSurfaces();
     }
 
     clearActivePoint() {
@@ -112,14 +144,23 @@ export default class Game {
 
         this.prevCellX = -1;
         this.prevCellY = -1;
+        this.renderSurfaces();
     }
 
     colourPoint(x:number, y:number, r:number, g:number, b:number) {
         let [pointX, pointY] = this.pointToPixels( x, y );
 
-        this.mainCanvasContext.beginPath();
-        this.mainCanvasContext.arc(pointX, pointY, this.holeRadius, 0, 2 * Math.PI, false);
-        this.mainCanvasContext.fillStyle = 'rgb(' + r.toString() + ',' + g.toString() + ',' + b.toString() + ')';
-        this.mainCanvasContext.fill();
+        this.baseSurfaceContext.beginPath();
+        this.baseSurfaceContext.arc(pointX, pointY, this.holeRadius, 0, 2 * Math.PI, false);
+        this.baseSurfaceContext.fillStyle = 'rgb(' + r.toString() + ',' + g.toString() + ',' + b.toString() + ')';
+        this.baseSurfaceContext.fill();
+    }
+
+    renderSurfaces() {
+        this.mainCanvasContext.clearRect( 0, 0, this.canvasX, this.canvasY );
+
+        this.mainCanvasContext.drawImage( this.baseSurface, 0, 0 );
+        this.mainCanvasContext.drawImage( this.midSurface, 0, 0 );
+        this.mainCanvasContext.drawImage( this.topSurface, 0, 0 );
     }
 }
